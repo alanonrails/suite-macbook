@@ -1,0 +1,10 @@
+.DS_Store
+
+# Build
+.build/
+build/
+*.app
+
+# Dados pessoais
+*.csv
+notificacoes-debug.txt

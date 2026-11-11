@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>Launcher</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.alanvieira.launcher</string>
+	<key>CFBundleName</key>
+	<string>Launcher</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Abrir comandos do quicklink terminal numa janela nova do Terminal.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Buscar arquivos na Mesa.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Buscar arquivos na pasta Documentos e ler os quicklinks.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Buscar arquivos na pasta Downloads.</string>
+	<key>NSLocationUsageDescription</key>
+	<string>Mostrar o nome da rede wifi no launcher.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Mostrar o nome da rede wifi no launcher.</string>
+	<key>NSNetworkVolumesUsageDescription</key>
+	<string>Buscar arquivos em volumes de rede.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Buscar arquivos em discos externos.</string>
+</dict>
+</plist>
