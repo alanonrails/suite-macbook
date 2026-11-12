@@ -60,6 +60,27 @@ enum Passwords {
         pb.setString("", forType: NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"))
     }
 
+    /// Digita o texto no campo em foco do app da frente, sem passar pela área de transferência.
+    /// Precisa da permissão de Acessibilidade; sem ela, pede a permissão e devolve false.
+    static func type(_ text: String) -> Bool {
+        let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        guard AXIsProcessTrustedWithOptions(opts) else { return false }
+        // Espera o painel sumir para a tecla cair no app de trás.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            let src = CGEventSource(stateID: .hidSystemState)
+            for ch in text {
+                let units = Array(String(ch).utf16)
+                for down in [true, false] {
+                    guard let e = CGEvent(keyboardEventSource: src, virtualKey: 0, keyDown: down) else { continue }
+                    e.flags = []
+                    e.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
+                    e.post(tap: .cghidEventTap)
+                }
+            }
+        }
+        return true
+    }
+
     /// Abre o CSV no app padrão (planilha). Se não existir, cria só com o cabeçalho.
     static func openFile() {
         if !FileManager.default.fileExists(atPath: file.path) {

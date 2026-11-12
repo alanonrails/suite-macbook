@@ -707,7 +707,7 @@ struct PasswordsBalloon: View {
                 }, selection: state.selection, maxHeight: state.balloonMax - 30)
             }
             Line()
-            Text("enter copia senha · ⌘enter copia usuário · ⌘o abre o arquivo")
+            Text("enter preenche senha · ⌘enter copia usuário · ⌘o abre o arquivo")
                 .font(Theme.mono(11))
                 .foregroundColor(Theme.gray)
                 .frame(maxWidth: .infinity, alignment: .leading)

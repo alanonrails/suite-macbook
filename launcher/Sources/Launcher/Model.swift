@@ -524,7 +524,7 @@ final class LauncherState: ObservableObject {
         }
     }
 
-    /// Enter copia a senha; ⌘enter copia o usuário.
+    /// Enter digita a senha no campo em foco; ⌘enter copia o usuário.
     func copyPassword(user: Bool) {
         let list = passwordsList
         guard list.indices.contains(selection) else { return }
@@ -532,7 +532,8 @@ final class LauncherState: ObservableObject {
         if !user && e.is2FA { return }
         let text = user ? e.username : e.password
         guard !text.isEmpty else { return }
-        Passwords.copy(text)
+        // Sem permissão de Acessibilidade, copia a senha como antes.
+        if user || !Passwords.type(text) { Passwords.copy(text) }
         hidePanel?()
     }
 
