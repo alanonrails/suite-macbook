@@ -46,7 +46,8 @@ struct GridEntry: Codable, Equatable {
 
 /// Apps mais usados, na fileira do topo da lista de quicklinks.
 enum Favorites {
-    static let paths = [
+    /// Lista inicial, enquanto não há uso registrado; completa a fileira quando há poucos apps contados.
+    static let initial = [
         "/System/Applications/System Settings.app",
         "/System/Library/CoreServices/Finder.app",
         "/Applications/Safari.app",
@@ -54,6 +55,45 @@ enum Favorites {
         "/Applications/WhatsApp.app",
         "/System/Applications/Mail.app",
     ].filter { FileManager.default.fileExists(atPath: $0) }
+
+    /// Cada vez que um app foi aberto pelo launcher, nas últimas 24 horas.
+    private struct Use: Codable {
+        let path: String
+        let date: Date
+    }
+
+    private static let file = "apps-uso.json"
+    private static let window: TimeInterval = 24 * 60 * 60
+    private static var uses: [Use] = {
+        guard let data = try? Data(contentsOf: Store.dir.appendingPathComponent(file)) else { return [] }
+        return (try? JSONDecoder().decode([Use].self, from: data)) ?? []
+    }()
+
+    static func record(_ path: String) {
+        let now = Date()
+        uses.removeAll { now.timeIntervalSince($0.date) > window }
+        uses.append(Use(path: path, date: now))
+        if let data = try? JSONEncoder().encode(uses) {
+            try? data.write(to: Store.dir.appendingPathComponent(file), options: .atomic)
+        }
+    }
+
+    /// Mais abertos nas últimas 24 horas primeiro (no empate, o usado por último); depois, a lista inicial.
+    static var paths: [String] {
+        let now = Date()
+        var count: [String: Int] = [:]
+        var last: [String: Date] = [:]
+        for u in uses where now.timeIntervalSince(u.date) <= window {
+            count[u.path, default: 0] += 1
+            last[u.path] = u.date
+        }
+        let ranked = count.keys
+            .filter { FileManager.default.fileExists(atPath: $0) }
+            .sorted { count[$0]! != count[$1]! ? count[$0]! > count[$1]! : last[$0]! > last[$1]! }
+        // O Safari da lista inicial é um link simbólico; compara pelo caminho real.
+        let rest = initial.filter { !ranked.contains(URL(fileURLWithPath: $0).resolvingSymlinksInPath().path) }
+        return ranked + rest
+    }
 
     static func name(_ path: String) -> String {
         (FileManager.default.displayName(atPath: path) as NSString).deletingPathExtension
@@ -117,7 +157,7 @@ final class LauncherState: ObservableObject {
     @Published var inFavorites = false
     @Published var favoriteSel = 0
     /// Quantos favoritos cabem na largura do painel.
-    @Published var favoritesFit = Favorites.paths.count
+    @Published var favoritesFit = Favorites.initial.count
     /// Notificação selecionada quando o foco está nelas (tab com a barra vazia).
     @Published var notificationSel = 0
     /// Tradução, com o foco embaixo: 0 idioma de origem, 1 inverter, 2 idioma de destino.
@@ -432,6 +472,9 @@ final class LauncherState: ObservableObject {
         case .quicklink(let m):
             activate(m)
         case .open(let url):
+            if url.isFileURL && url.pathExtension == "app" {
+                Favorites.record(url.resolvingSymlinksInPath().path)
+            }
             Self.openURL(url)
             hidePanel?()
         }
