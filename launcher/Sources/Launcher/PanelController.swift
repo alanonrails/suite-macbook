@@ -17,6 +17,8 @@ final class PanelController: NSObject, NSWindowDelegate {
     private let panel: LauncherPanel
     private var monitor: Any?
     private var timer: Timer?
+    /// Nenhuma tecla apertada desde que o painel abriu.
+    private var fresh = false
 
     override init() {
         panel = LauncherPanel(
@@ -69,6 +71,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         state.refreshStatus()
         panel.makeKeyAndOrderFront(nil)
         state.focusToken += 1
+        fresh = true
         state.refreshApps()
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
@@ -88,6 +91,15 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private func handle(_ e: NSEvent) -> NSEvent? {
         guard e.window === panel else { return e }
+
+        // ⌫ como primeira tecla ao abrir limpa tudo.
+        if fresh {
+            fresh = false
+            if e.keyCode == 51 && e.modifierFlags.intersection([.command, .shift, .option, .control]).isEmpty {
+                state.clearAll()
+                return nil
+            }
+        }
 
         if e.modifierFlags.contains(.command) {
             if (e.keyCode == 36 || e.keyCode == 76) && state.mode == .apps

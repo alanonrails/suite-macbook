@@ -429,6 +429,19 @@ final class LauncherState: ObservableObject {
         return true
     }
 
+    /// Volta ao início: barra vazia, sem modo.
+    func clearAll() {
+        mode = nil
+        query = ""
+        selection = 0
+        picking = nil
+        inBalloon = false
+        showQuicklinks = false
+        termRecall = nil
+        termError = nil
+        focusField()
+    }
+
     func back() -> Bool {
         if mode != nil {
             mode = nil
