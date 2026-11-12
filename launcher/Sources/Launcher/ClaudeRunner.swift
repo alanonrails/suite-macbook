@@ -6,6 +6,8 @@ final class StreamParser {
     private(set) var text = ""
     private(set) var final: String?
     private(set) var isError = false
+    /// Sessão do claude, para a próxima pergunta continuar a conversa.
+    private(set) var sessionID: String?
 
     init(onText: @escaping (String) -> Void) {
         self.onText = onText
@@ -22,6 +24,7 @@ final class StreamParser {
 
     private func handle(_ line: Data) {
         guard let obj = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any] else { return }
+        if let id = obj["session_id"] as? String { sessionID = id }
         switch obj["type"] as? String {
         case "stream_event":
             guard let event = obj["event"] as? [String: Any] else { return }
@@ -53,6 +56,11 @@ final class ClaudeRunner {
     private var executable: String?
     private var searchPath = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     private var current: Process?
+    /// Conversa em andamento; cada pergunta nova continua dela.
+    private var sessionID: String?
+    /// Hora da última pergunta; depois de 2 horas sem perguntar, começa uma conversa nova.
+    private var lastAsk: Date?
+    private static let sessionTimeout: TimeInterval = 2 * 60 * 60
 
     private static let readOnlyTools = [
         "Read", "Glob", "Grep", "WebSearch", "WebFetch",
@@ -132,6 +140,9 @@ final class ClaudeRunner {
                        "--append-system-prompt", Self.systemPrompt,
                        "--disallowedTools", "Edit", "Write", "NotebookEdit",
                        "--allowedTools"] + Self.readOnlyTools
+        if let last = lastAsk, Date().timeIntervalSince(last) > Self.sessionTimeout { sessionID = nil }
+        lastAsk = Date()
+        if let id = sessionID { p.arguments! += ["--resume", id] }
         configure(p)
         let out = Pipe()
         p.standardOutput = out
@@ -149,6 +160,8 @@ final class ClaudeRunner {
             DispatchQueue.main.async {
                 parser.feed(rest)
                 parser.feed(Data([10]))
+                // Se a sessão não pôde ser retomada, a próxima pergunta começa uma conversa nova.
+                self.sessionID = parser.sessionID ?? (parser.isError || status != 0 ? nil : self.sessionID)
                 if parser.isError {
                     onDone("", parser.final ?? "erro do claude")
                 } else if let final = parser.final {
