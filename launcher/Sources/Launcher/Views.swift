@@ -53,10 +53,8 @@ struct LauncherView: View {
         switch state.mode {
         case .none: return "buscar"
         case .ia?: return "pergunte ou peça uma ação"
-        case .notas?: return "texto para adicionar ao final"
         case .apps?: return "filtrar apps"
         case .traduzir?: return "texto para traduzir"
-        case .terminal?: return "comando para abrir no Terminal"
         case .senhas?: return "buscar senha"
         }
     }
@@ -99,16 +97,14 @@ struct LauncherView: View {
             ResultList(items: state.results, selection: state.inFavorites && state.favoritesActive ? -1 : state.selection,
                        maxHeight: state.balloonMax)
         case .ia?: IABalloon()
-        case .notas?: NotesBalloon()
         case .apps?: AppsBalloon()
         case .traduzir?: TranslateBalloon()
-        case .terminal?: TerminalBalloon()
         case .senhas?: PasswordsBalloon()
         }
     }
 }
 
-/// Linha de cima: data e hora à esquerda; notas (se houver), wi-fi e bateria à direita.
+/// Linha de cima: data e hora à esquerda; wi-fi e bateria à direita.
 struct StatusLine: View {
     @EnvironmentObject var state: LauncherState
 
@@ -117,10 +113,6 @@ struct StatusLine: View {
             Text(state.clockDay + "  " + state.clockTime)
                 .foregroundColor(Theme.fg)
             Spacer(minLength: 0)
-            if hasNotes {
-                Image(systemName: "note.text")
-                    .foregroundColor(Theme.yellow)
-            }
             if let w = state.wifi {
                 Image(systemName: w.connected ? "wifi" : "wifi.slash", variableValue: Double(w.bars) / 3)
                     .foregroundColor(w.connected ? Theme.fg : Theme.gray)
@@ -136,10 +128,6 @@ struct StatusLine: View {
         .font(Theme.mono(13, .bold))
         .padding(.horizontal, 14)
         .frame(height: 30)
-    }
-
-    private var hasNotes: Bool {
-        state.note.split(separator: "\n").contains { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
     private func batterySymbol(_ b: BatteryInfo) -> String {
@@ -486,18 +474,6 @@ struct AppsBalloon: View {
         .padding(.horizontal, 14)
         .padding(.top, 10)
         .padding(.bottom, 4)
-    }
-}
-
-struct NotesBalloon: View {
-    @EnvironmentObject var state: LauncherState
-
-    var body: some View {
-        NoteEditor(text: $state.note, focused: state.inBalloon) {
-            if !state.inBalloon { state.inBalloon = true }
-        }
-        .padding(10)
-        .frame(height: 280)
     }
 }
 

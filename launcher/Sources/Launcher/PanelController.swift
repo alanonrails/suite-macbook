@@ -130,14 +130,6 @@ final class PanelController: NSObject, NSWindowDelegate {
             return e
         }
 
-        if let tv = panel.firstResponder as? NSTextView, !tv.isFieldEditor {
-            if e.keyCode == 53 {
-                state.focusField()
-                return nil
-            }
-            return e
-        }
-
         if state.inBalloon { return handleBalloon(e) }
 
         switch e.keyCode {

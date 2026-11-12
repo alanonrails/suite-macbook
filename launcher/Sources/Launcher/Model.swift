@@ -6,7 +6,7 @@ extension String {
 }
 
 enum Mode: String, CaseIterable {
-    case terminal, ia, apps, notas, traduzir, senhas
+    case ia, apps, traduzir, senhas
 }
 
 enum IAPhase {
@@ -140,18 +140,6 @@ final class LauncherState: ObservableObject {
     @Published var translation = ""
     @Published var translationError: String?
 
-    @Published var termHistory: [String] = (Store.readText("terminal-historico.txt") ?? "")
-        .split(separator: "\n").map(String.init) {
-        didSet { Store.writeText(termHistory.joined(separator: "\n"), "terminal-historico.txt") }
-    }
-    @Published var termError: String?
-    /// Comando escolhido na lista de últimos comandos (0 = mais recente); nil = no campo.
-    @Published private(set) var termRecall: Int?
-
-    @Published var note: String = Store.readText("notas.txt") ?? "" {
-        didSet { if note != oldValue { Store.writeText(note, "notas.txt") } }
-    }
-
     var hidePanel: (() -> Void)?
     private lazy var quickSearch = FileSearch(limit: 5) { [weak self] paths in self?.fileHits = paths }
     private var translateTask: Task<Void, Never>?
@@ -163,8 +151,6 @@ final class LauncherState: ObservableObject {
     private var trimmedQuery: String { query.trimmed.lowercased() }
 
     func reloadFromDisk() {
-        let text = Store.readText("notas.txt") ?? ""
-        if text != note { note = text }
         hiddenNotifications = Set(Store.loadIDs("notificacoes-ocultas.json"))
     }
 
@@ -185,8 +171,6 @@ final class LauncherState: ObservableObject {
         showQuicklinks = false
         translateFocus = 0
         iaIndex = iaHistory.count - 1
-        termRecall = nil
-        termError = nil
         if m == .senhas { loadPasswords() }
     }
 
@@ -229,10 +213,8 @@ final class LauncherState: ObservableObject {
             // Sem resultados, o tab vai para as notificações.
             ok = !results.isEmpty || (query.isEmpty && !notifications.isEmpty)
             notificationSel = 0
-        case .notas?: ok = true
         case .apps?: ok = !appsList.isEmpty
         case .ia?: ok = false
-        case .terminal?: ok = false
         case .traduzir?: ok = true
         case .senhas?: ok = !passwordsList.isEmpty
         }
@@ -374,10 +356,6 @@ final class LauncherState: ObservableObject {
     }
 
     func move(_ delta: Int) {
-        if mode == .terminal {
-            recall(delta)
-            return
-        }
         if mode == .ia {
             guard !iaHistory.isEmpty, iaHistory.last?.phase != .confirm else { return }
             iaIndex = min(max(iaIndex + delta, 0), iaHistory.count - 1)
@@ -437,8 +415,6 @@ final class LauncherState: ObservableObject {
         picking = nil
         inBalloon = false
         showQuicklinks = false
-        termRecall = nil
-        termError = nil
         focusField()
     }
 
@@ -505,15 +481,8 @@ final class LauncherState: ObservableObject {
         case .apps?:
             let list = appsList
             if list.indices.contains(selection) { openEntry(list[selection]) }
-        case .notas?:
-            let text = query.trimmed
-            guard !text.isEmpty else { return }
-            note += (note.isEmpty || note.hasSuffix("\n") ? "" : "\n") + text
-            query = ""
         case .ia?:
             submitIA()
-        case .terminal?:
-            runTerminal()
         case .traduzir?:
             guard !translation.isEmpty else { return }
             NSPasteboard.general.clearContents()
@@ -569,39 +538,6 @@ final class LauncherState: ObservableObject {
             self.iaHistory[idx].commands = parts.commands
             self.iaHistory[idx].phase = parts.commands.isEmpty ? .answered : .confirm
         })
-    }
-
-    private func runTerminal() {
-        let command = query.trimmed
-        guard !command.isEmpty else { return }
-        termRecall = nil
-        if let error = TerminalRunner.open(command) {
-            termError = error
-            return
-        }
-        termError = nil
-        termHistory.removeAll { $0 == command }
-        termHistory.append(command)
-        if termHistory.count > 100 { termHistory.removeFirst(termHistory.count - 100) }
-        query = ""
-        hidePanel?()
-    }
-
-    /// Últimos comandos, do mais recente ao mais antigo.
-    var termRecent: [String] { termHistory.reversed() }
-
-    /// ↓ desce pela lista de últimos comandos; ↑ sobe e, no topo, volta ao campo vazio.
-    private func recall(_ delta: Int) {
-        let commands = termRecent
-        guard !commands.isEmpty else { return }
-        let i = (termRecall ?? -1) + delta
-        if i < 0 {
-            termRecall = nil
-            query = ""
-            return
-        }
-        termRecall = min(i, commands.count - 1)
-        query = commands[termRecall!]
     }
 
     private func scheduleTranslate() {

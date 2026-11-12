@@ -16,10 +16,6 @@ enum Store {
                 try? fm.copyItem(at: source, to: target)
             }
         }
-        if !fm.fileExists(atPath: base.appendingPathComponent("notas.txt").path),
-           let note = UserDefaults.standard.string(forKey: "note") {
-            try? note.write(to: base.appendingPathComponent("notas.txt"), atomically: true, encoding: .utf8)
-        }
         if !fm.fileExists(atPath: base.appendingPathComponent("notificacoes-ocultas.json").path),
            let ids = UserDefaults.standard.array(forKey: "hiddenNotifications") as? [Int64],
            let data = try? JSONEncoder().encode(ids) {
